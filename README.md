@@ -46,7 +46,7 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 - -u 服务的url。组成 protocol://hostname:port/path。protocol有http、https。默认：https://0.0.0.0:28080/，此时protocol：https，hostname:0.0.0.0，port：28080，path：/
 注：protocol要与port匹配。若要向HTTP发送压力，则需要将protocol改为http，port改为对应的端口，例如80。
 - -h 帮助。
-- -H 指定request Header头。使用方式 -H '["Host:baike.baidu.com","Connection:Keep-alive"]' 。注意格式：中括号外用单引号括起来，中括号内每个元素使用双引号"括起来，如果元素大于1个，元素间使用逗号隔开。不按此格式书写的-H将解析失败。
+- -H 指定request Header头。使用方式 -H '["Host:baike.baidu.com","Connection:Keep-alive"]' 注：只有在连接上发送query请求时此参数才有效(即添加-k参数) 。注意格式：中括号外用单引号括起来，中括号内每个元素使用双引号"括起来，如果元素大于1个，元素间使用逗号隔开。不按此格式书写的-H将解析失败。
 
 ###三、使用案例
 e.g. HTTPS QPS
