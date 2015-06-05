@@ -101,7 +101,7 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> ./iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -k -H '["Host:baike.baidu.com"]'  
+> ./iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -H '["Host:baike.baidu.com"]'  
 
 > Server Software: 
 
@@ -109,9 +109,7 @@ e.g. HTTPS CPS
 
 > Server Port:8800   
 
-> Request Headers: 
-
->  Host:baike.baidu.com  
+> Request Headers: ["Host:baike.baidu.com"]  
 
 > Document Path:/shaheng.html  
 
@@ -127,4 +125,4 @@ e.g. HTTPS CPS
 
 > Non2XXCode:0
 
-此案例没有使用-k，即都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+此案例没有使用-k，没有发送query，Header头部也没有解析(因为是多余的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
