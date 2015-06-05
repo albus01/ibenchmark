@@ -85,19 +85,19 @@ e.g. HTTPS QPS
 
 #####由于使用了-k参数，故2个并发建立了两个长连接，每个长连接发送10个Request请求。此为一个QPS测试的案例。
 ####输出说明：
-Server Software为请求的后端服务器
-Server Hostname为请求的Server HostName
-Server Port 请求的Server端口
-Document Path 请求的路径
-Document Length 服务端返回的文档的长度
-Concurrency 并发数
-Time Duration 从启动到结束经历的时间
-Avg Time Taken 每个请求的平均响应时间
-Complete Request 完成的请求数
-Failed Request 失败的请求数
-Request Per Second 每秒请求量 QPS (测试CPS时，此数据为0)
-Connections Per Second 每秒连接量 CPS(打开-k 测试QPS时为0)
-Non2XXCode 不是200~299之间的HTTP 状态码
+Server Software为请求的后端服务器</br>
+Server Hostname为请求的Server HostName</br>
+Server Port 请求的Server端口</br>
+Document Path 请求的路径</br>
+Document Length 服务端返回的文档的长度</br>
+Concurrency 并发数</br>
+Time Duration 从启动到结束经历的时间</br>
+Avg Time Taken 每个请求的平均响应时间</br>
+Complete Request 完成的请求数</br>
+Failed Request 失败的请求数</br>
+Request Per Second 每秒请求量 QPS (测试CPS时，此数据为0)</br>
+Connections Per Second 每秒连接量 CPS(打开-k 测试QPS时为0)</br>
+Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
