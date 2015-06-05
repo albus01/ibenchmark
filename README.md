@@ -1,10 +1,8 @@
 # iBenchmark
 A benckmark that can generate http(s)'s query by short and long connection
-
-###一、工具介绍
 iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
-###二、工具使用
-使用帮助：
+
+#Usage
 
 > Usage: iBenchmark [options]  
 
@@ -47,10 +45,10 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 - -h 帮助。
 - -H 指定request Header头。使用方式 -H '["Host:baike.baidu.com","Connection:Keep-alive"]' 注：只有在连接上发送query请求时此参数才有效(即添加-k参数) 。注意格式：中括号外用单引号括起来，中括号内每个元素使用双引号"括起来，如果元素大于1个，元素间使用逗号隔开。不按此格式书写的-H将解析失败。
 
-###三、使用案例
+#Example
 e.g. HTTPS QPS
 
-> $./iBenchmark -c 2 -r 10 -u https://127.0.0.1:8800/shaheng.html -k -H '["Host:baike.baidu.com"]'  
+> $go run iBenchmark -c 2 -r 10 -u https://127.0.0.1:8800/shaheng.html -k -H '["Host:baike.baidu.com"]'  
 
 > Server Software:nginx/1.4.1  
 
@@ -100,7 +98,7 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> ./iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -H '["Host:baike.baidu.com"]'  
+> go run iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -H '["Host:baike.baidu.com"]'  
 
 > Server Software: 
 
@@ -125,3 +123,17 @@ e.g. HTTPS CPS
 > Non2XXCode:0
 
 此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+
+#License
+   Copyright 2015 Albus <albus@shaheng.me>.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
