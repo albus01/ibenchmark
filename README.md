@@ -48,20 +48,20 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 #Example
 e.g. HTTPS QPS
 
-> $go run iBenchmark -c 2 -r 10 -u https://127.0.0.1:8800/shaheng.html -k -H '["Host:baike.baidu.com"]'  
+> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -H '["Host:baike.baidu.com"]'  
 
-> Server Software:nginx/1.4.1  
+> Server Software:bfe/1.0.8.2  
 
-> Server Port:8800 Request 
+> Server Port:443 
 
-> Headers: 
+> Request Headers: 
 
 >  Host:baike.baidu.com 
 
 > 
-> Document Path:/shaheng.html 
+> Document Path:/index.html 
 
-> Document Length:131 
+> Document Length:443 
 
 > Concurrency:2 
 
@@ -73,7 +73,7 @@ e.g. HTTPS QPS
 
 > Failed Request:0 
 
-> Request Per Second:555 
+> Request Per Second:3 
 
 > Connections Per Second:0 
 
@@ -98,19 +98,25 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> go run iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -H '["Host:baike.baidu.com"]'  
+> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -H '["Host:baike.baidu.com"]'  
 
 > Server Software: 
 
-> Server Hostname:127.0.0.1 
+> Server Hostname:www.baidu.com 
 
-> Server Port:8800   
+> Server Port:443   
 
 > Request Headers: ["Host:baike.baidu.com"]  
 
-> Document Path:/shaheng.html  
+> Document Path:/index.html  
+
+> Document Length:0
 
 > Concurrency:2  
+
+> Time Duration:3826ms
+
+> Avg Time Taken:356ms
 
 > Complete Requests:1917 
 
@@ -118,11 +124,11 @@ e.g. HTTPS CPS
 
 > Request Per Second:0  
 
-> Connections Per Second:383  
+> Connections Per Second:24  
 
 > Non2XXCode:0
 
-此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),server software也为空，Document Length为0.都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
 
 #License
    Copyright 2015 Albus <albus@shaheng.me>.
