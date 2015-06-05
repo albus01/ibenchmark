@@ -26,14 +26,6 @@ import (
 	"time"
 )
 
-const (
-	DC_BUCKET_SIZE = 10 // size of delay counter bucket (in ms)
-	DC_BUCKET_NUM  = 10 // number of delay counter bucket
-
-	HTTP_CODE_BUCKET_SIZE = 100
-	HTTP_CODE_BUCKET_NUM  = 6
-)
-
 var CipherSuites = map[string]uint16{
 	"TLS_RSA_WITH_RC4_128_SHA":                uint16(0x0005),
 	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           uint16(0x000a),
@@ -293,7 +285,6 @@ func HTTPSGet_KeepAlive(cipherSuite uint16, conn *net.Conn) (*http.Response, err
 	var err error
 	// connect to tls server
 	if *conn == nil {
-		//fmt.Println(fmt.Sprintf("[INFO] conn is nil"))
 		*conn, err = tls.Dial(network, address, &config)
 		if err != nil {
 			fmt.Errorf("client: dial: %s", err)
@@ -334,7 +325,6 @@ func HTTPGet_KeepAlive(conn *net.Conn) (*http.Response, error) {
 }
 
 func SendQuery(conn net.Conn) (*http.Response, error) {
-	//procStart := time.Now()
 	var resp *http.Response
 	var err error
 	// send message
@@ -348,7 +338,6 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 		}
 		*header = temp
 		message = fmt.Sprintf("GET %s HTTP/1.1\r\n%s\r\n", path, temp)
-		//fmt.Println(fmt.Sprintf("%q", message))
 	} else {
 		message = fmt.Sprintf("GET %s HTTP/1.1\r\n\r\n", path)
 	}
@@ -357,7 +346,6 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 		fmt.Errorf("client: write: %s", err)
 		return nil, err
 	}
-	//fmt.Printf("client: wrote %q (%d bytes), wait for reply", message, n)
 	// read message
 	reply := make([]byte, 2560)
 	n, err = conn.Read(reply)
@@ -366,29 +354,5 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 	if err != nil {
 		fmt.Errorf("%s", err)
 	}
-	//fmt.Printf("ContentLengh:%d\n", resp.ContentLength)
-	//fmt.Printf("Proto:%s\n", resp.Proto)
-	//fmt.Printf("StatusCode:%d\n", resp.StatusCode)
-	//fmt.Printf("Status:%s\n", resp.Status)
-	//fmt.Printf("KeepAlive:%v\n", resp.Close)
-	////var buf bytes.Buffer
-	////io.Copy(&buf, resp.Body)
-	////fmt.Printf("Body:%s\n", buf.String())
-	////fmt.Printf("Header:%s\n", resp.Header["Date"])
-	//fmt.Println("Request Headers:")
-	//request := reflect.ValueOf(resp.Request).Elem()
-	//for i := 0; i < request.NumField(); i++ {
-	//	fmt.Printf("%s=%v;", request.Type().Field(i).Name, request.Field(i).Interface())
-	//}
-	//fmt.Println()
-	//fmt.Printf("Headers:%s", resp.Header["Server"])
-	//for key, value := range resp.Header {
-	//	fmt.Println("key:", key, "value:", value)
-	//}
-	//fmt.Println()
-
-	//elapse := time.Now().Sub(procStart).Nanoseconds() / 1000
-	//fmt.Printf("GET transaction elapse %d us\n", elapse)
-	//fmt.Println()
 	return resp, err
 }
