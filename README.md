@@ -2,8 +2,7 @@
 A benckmark that can generate http(s)'s query by short and long connection
 
 ###一、工具介绍
-iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。故需要结合ab、wrk工具一起测试HTTPS Server的QPS、CPS指标。
-现已改善，囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
+iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
 ###二、工具使用
 使用帮助：
 
@@ -125,4 +124,4 @@ e.g. HTTPS CPS
 
 > Non2XXCode:0
 
-此案例没有使用-k，没有发送query，Header头部也没有解析(因为是多余的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
