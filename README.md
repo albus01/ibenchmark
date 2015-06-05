@@ -109,7 +109,9 @@ e.g. HTTPS CPS
 
 > Server Port:8800   
 
-> Request Headers: ["Host:baike.baidu.com"]  
+> Request Headers: 
+
+>  Host:baike.baidu.com  
 
 > Document Path:/shaheng.html  
 
