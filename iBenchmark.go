@@ -215,6 +215,7 @@ func (r *Reporter) GetResponse(conn *net.Conn) error {
 			}
 		}
 	}
+	resp.Body.Close()
 	end := time.Now()
 	elapse := end.Sub(procStart).Nanoseconds() / 1000
 	r.TimeTaken += elapse
@@ -227,7 +228,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 
 	defer func() {
 		if conn != nil {
-			conn.Close()
+			//conn.Close()
 		}
 
 	}()
@@ -350,11 +351,14 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 	if _, err = io.WriteString(conn, message); err != nil {
 		return nil, err
 	}
+	//if _, err = io.WriteString(conn, message); err != nil {
+	//	return nil, err
+	//}
+
 	req := &http.Request{Method: "GET"}
 	resp, err = http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
-		return resp, nil
-	} else {
 		return nil, err
 	}
+	return resp, nil
 }
