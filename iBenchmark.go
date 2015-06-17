@@ -14,6 +14,7 @@ import (
 	"bufio"
 	//"bytes"
 	"crypto/tls"
+	//"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -221,9 +222,11 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 
 	defer func() {
 		if conn != nil {
-			conn.Close()
+			fmt.Println("conn is not nil")
+			//conn.Close()
 
 		}
+
 	}()
 	if *dur != 0 {
 		for {
@@ -246,7 +249,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 			err := reporter.GetResponse(&conn)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("[ERROR]:%s", err))
-				conn = nil
+				//conn = nil
 			}
 		}
 		finChan <- true
@@ -341,18 +344,15 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 	} else {
 		message = fmt.Sprintf("GET %s HTTP/1.1\r\n\r\n", path)
 	}
-	n, err := io.WriteString(conn, message)
-	if err != nil {
-		fmt.Errorf("client: write: %s", err)
+	if _, err = io.WriteString(conn, message); err != nil {
 		return nil, err
 	}
-	// read message
-	reply := make([]byte, 2560)
-	n, err = conn.Read(reply)
-	req := &http.Request{Method: "GET"}
-	resp, err = http.ReadResponse(bufio.NewReader(strings.NewReader(string(reply[:n]))), req)
-	if err != nil {
-		fmt.Errorf("%s", err)
+	for {
+		req := &http.Request{Method: "GET"}
+		resp, err = http.ReadResponse(bufio.NewReader(conn), req)
+		if err != nil {
+			return resp, nil
+		}
+		return resp, err
 	}
-	return resp, err
 }
