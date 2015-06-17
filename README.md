@@ -1,11 +1,8 @@
 # iBenchmark
 A benckmark that can generate http(s)'s query by short and long connection
+iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
 
-###一、工具介绍
-iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。故需要结合ab、wrk工具一起测试HTTPS Server的QPS、CPS指标。
-现已改善，囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
-###二、工具使用
-使用帮助：
+#Usage
 
 > Usage: iBenchmark [options]  
 
@@ -48,23 +45,23 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 - -h 帮助。
 - -H 指定request Header头。使用方式 -H '["Host:baike.baidu.com","Connection:Keep-alive"]' 注：只有在连接上发送query请求时此参数才有效(即添加-k参数) 。注意格式：中括号外用单引号括起来，中括号内每个元素使用双引号"括起来，如果元素大于1个，元素间使用逗号隔开。不按此格式书写的-H将解析失败。
 
-###三、使用案例
+#Example
 e.g. HTTPS QPS
 
-> $./iBenchmark -c 2 -r 10 -u https://127.0.0.1:8800/shaheng.html -k -H '["Host:baike.baidu.com"]'  
+> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -H '["Host:baike.baidu.com"]'  
 
-> Server Software:nginx/1.4.1  
+> Server Software:bfe/1.0.8.2  
 
-> Server Port:8800 Request 
+> Server Port:443 
 
-> Headers: 
+> Request Headers: 
 
 >  Host:baike.baidu.com 
 
 > 
-> Document Path:/shaheng.html 
+> Document Path:/index.html 
 
-> Document Length:131 
+> Document Length:443 
 
 > Concurrency:2 
 
@@ -76,7 +73,7 @@ e.g. HTTPS QPS
 
 > Failed Request:0 
 
-> Request Per Second:555 
+> Request Per Second:3 
 
 > Connections Per Second:0 
 
@@ -101,19 +98,25 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> ./iBenchmark -c 2 -t 5000 -u https://127.0.0.1:8800/shaheng.html -H '["Host:baike.baidu.com"]'  
+> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -H '["Host:baike.baidu.com"]'  
 
 > Server Software: 
 
-> Server Hostname:127.0.0.1 
+> Server Hostname:www.baidu.com 
 
-> Server Port:8800   
+> Server Port:443   
 
 > Request Headers: ["Host:baike.baidu.com"]  
 
-> Document Path:/shaheng.html  
+> Document Path:/index.html  
+
+> Document Length:0
 
 > Concurrency:2  
+
+> Time Duration:3826ms
+
+> Avg Time Taken:356ms
 
 > Complete Requests:1917 
 
@@ -121,8 +124,22 @@ e.g. HTTPS CPS
 
 > Request Per Second:0  
 
-> Connections Per Second:383  
+> Connections Per Second:24  
 
 > Non2XXCode:0
 
-此案例没有使用-k，没有发送query，Header头部也没有解析(因为是多余的),都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),server software也为空，Document Length为0.都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+
+#License
+   Copyright 2015 Albus <albus@shaheng.me>.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
