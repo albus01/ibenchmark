@@ -227,9 +227,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 
 	defer func() {
 		if conn != nil {
-			fmt.Println("conn is not nil")
-			//conn.Close()
-
+			conn.Close()
 		}
 
 	}()
@@ -353,11 +351,10 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 		return nil, err
 	}
 	req := &http.Request{Method: "GET"}
-	for {
-		resp, err = http.ReadResponse(bufio.NewReader(conn), req)
-		if err != nil {
-			return resp, nil
-		}
-		return resp, err
+	resp, err = http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		return resp, nil
+	} else {
+		return nil, err
 	}
 }
