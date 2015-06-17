@@ -214,8 +214,10 @@ func (r *Reporter) GetResponse(conn *net.Conn) error {
 				servers[server] = true
 			}
 		}
+		if err := resp.Body.Close(); err != nil {
+			return err
+		}
 	}
-	resp.Body.Close()
 	end := time.Now()
 	elapse := end.Sub(procStart).Nanoseconds() / 1000
 	r.TimeTaken += elapse
@@ -242,6 +244,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 				err := reporter.GetResponse(&conn)
 				if err != nil {
 					fmt.Println(fmt.Sprintf("[ERROR]:%s", err))
+					conn.Close()
 					conn = nil
 				}
 
@@ -253,7 +256,8 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 			err := reporter.GetResponse(&conn)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("[ERROR]:%s", err))
-				//conn = nil
+				conn.Close()
+				conn = nil
 			}
 		}
 		finChan <- true
