@@ -228,7 +228,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 
 	defer func() {
 		if conn != nil {
-			//conn.Close()
+			conn.Close()
 		}
 
 	}()
