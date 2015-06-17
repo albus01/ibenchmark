@@ -1,4 +1,3 @@
-
 /*
    Copyright 2015 Albus <albus@shaheng.me>.
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -353,8 +352,8 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 	if _, err = io.WriteString(conn, message); err != nil {
 		return nil, err
 	}
+	req := &http.Request{Method: "GET"}
 	for {
-		req := &http.Request{Method: "GET"}
 		resp, err = http.ReadResponse(bufio.NewReader(conn), req)
 		if err != nil {
 			return resp, nil
