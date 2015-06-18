@@ -17,19 +17,22 @@ package main
 
 import (
 	"bufio"
-	//"bytes"
+	"bytes"
 	"crypto/tls"
-	//"errors"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
-	//"reflect"
-	"encoding/json"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
+)
+
+const (
+	headerRegexp = "^([\\w-]+):\\s*(.+)"
 )
 
 var CipherSuites = map[string]uint16{
@@ -61,7 +64,10 @@ var (
 	dur         *int    = flag.Int("t", 0, "timelimit (msec)")
 	withReq     *bool   = flag.Bool("k", false, "send request after handshake on the keep-alive connection")
 	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite")
-	header      *string = flag.String("H", "", "request header")
+	method      *string = flag.String("m", "GET", "HTTP Method,GET default")
+	headers     *string = flag.String("H", "", "request Headers")
+	body        *string = flag.String("B", "", "request Body")
+	out         *bool   = flag.Bool("o", false, "print response body")
 )
 
 var (
@@ -70,11 +76,10 @@ var (
 	port      string
 	address   string
 	path      string
-	swithHttp bool = false
-	interval  int
+	swithHttp bool            = false
 	network   string          = "tcp"
 	servers   map[string]bool = make(map[string]bool)
-	headers   []string
+	header    http.Header     = make(http.Header)
 )
 
 type Reporter struct {
@@ -116,7 +121,6 @@ func main() {
 			printHelp()
 		}
 	}()
-	interval = 3600
 	flag.Parse()
 	if *help {
 		printHelp()
@@ -130,6 +134,18 @@ func main() {
 	port = (*url)[strings.LastIndex(*url, ":")+1 : strings.LastIndex(*url, "/")]
 	address = host + ":" + port
 	path = (*url)[strings.LastIndex(*url, "/"):]
+	if *headers != "" {
+		headers := strings.Split(*headers, ";")
+		for _, h := range headers {
+			match, err := parseHeader(h, headerRegexp)
+			if err != nil {
+				fmt.Println(err)
+				printHelp()
+				return
+			}
+			header.Set(match[1], match[2])
+		}
+	}
 	if host == "" || port == "" || path == "" || proto == "" {
 		printHelp()
 		return
@@ -175,9 +191,24 @@ func main() {
 		server = fmt.Sprintf("%s %s", server, key)
 	}
 	reporter.Server = server
-	reporter.Headers = *header
+	for k, v := range header {
+		var val string
+		for _, v := range v {
+			val += v + " "
+		}
+		reporter.Headers += k + ":" + val + "\r\n"
+	}
 	time.Sleep(1 * time.Second)
 	reporter.Printer()
+}
+
+func parseHeader(in, reg string) (matches []string, err error) {
+	re := regexp.MustCompile(reg)
+	matches = re.FindStringSubmatch(in)
+	if len(matches) < 1 {
+		err = errors.New(fmt.Sprintf("Could not parse provided input:%s", err.Error()))
+	}
+	return
 }
 
 func (r *Reporter) GetResponse(conn *net.Conn) error {
@@ -336,33 +367,29 @@ func HTTPGet_KeepAlive(conn *net.Conn) (*http.Response, error) {
 }
 
 func SendQuery(conn net.Conn) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-	// send message
-	//message := "GET /shaheng.html HTTP/1.1\r\nHost: baike.baidu.com\r\n\r\n"
-	var message string
-	var temp string
-	if *header != "" {
-		json.Unmarshal([]byte(*header), &headers)
-		for _, h := range headers {
-			temp = fmt.Sprintf("%s\r\n%s", h, temp)
-		}
-		*header = temp
-		message = fmt.Sprintf("GET %s HTTP/1.1\r\n%s\r\n", path, temp)
-	} else {
-		message = fmt.Sprintf("GET %s HTTP/1.1\r\n\r\n", path)
+
+	req, err := http.NewRequest(*method, *url, strings.NewReader(*body))
+	req.Header = header
+	if header.Get("Host") != "" {
+		//I think this should be a golang http pkg's bug.
+		//if I put Host Header in the req.Header,golang pkg can't handle it.
+		//So I have to hanlde the Host header in my code.
+		req.Host = header.Get("Host")
 	}
-	if _, err = io.WriteString(conn, message); err != nil {
+	if err := req.Write(conn); err != nil {
 		return nil, err
 	}
-	//if _, err = io.WriteString(conn, message); err != nil {
-	//	return nil, err
-	//}
-
-	req := &http.Request{Method: "GET"}
-	resp, err = http.ReadResponse(bufio.NewReader(conn), req)
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
 		return nil, err
+	}
+	var bout bytes.Buffer
+	io.Copy(&bout, resp.Body)
+	resp.Body.Close()
+	if *out {
+		if bout.String() != "" {
+			fmt.Println(bout.String())
+		}
 	}
 	return resp, nil
 }
