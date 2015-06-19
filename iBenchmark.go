@@ -410,10 +410,9 @@ func SendQuery(conn net.Conn) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	var bout bytes.Buffer
-	io.Copy(&bout, resp.Body)
-	resp.Body.Close()
 	if *out {
+		var bout bytes.Buffer
+		io.Copy(&bout, resp.Body)
 		if bout.String() != "" {
 			fmt.Println(bout.String())
 		}
