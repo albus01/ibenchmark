@@ -6,21 +6,29 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 
 > Usage: iBenchmark [options]  
 
-> -H="Host: baike.baidu.com": request header  
+> -B="": request Body,empty default
 
-> -k=false: send request after handshake on the keep-alive connection  
+> -H="": request Headers,empty default
 
-> -c=1: concurrency
+> -c=1: concurrency:the worker's number,1 default
 
 > -h=false: show help
 
-> -r=0: total requests per connection
+> -k=false: keep the connections every worker established alive,false default
 
-> -s="TLS_RSA_WITH_RC4_128_SHA": cipher suite  
+> -m="GET": HTTP Method,GET default
 
-> -t=0: timelimit (msec) 
+> -o=false: print response body
 
-> -u="https://0.0.0.0:28080/": server url  
+> -r=0: total requests per connection,0 default
+
+> -s="TLS_RSA_WITH_RC4_128_SHA": cipher suite,TLS_RSA_WITH_RC4_128_SHA default
+
+> -t=0: timelimit (msec),0 default
+
+> -u="https://0.0.0.0:28080/": server url
+
+> -w=false: send request after handshake connection,false default
 
 > cihper suite: <br />
 > TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA <br />
@@ -35,20 +43,24 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 
 参数说明：
 
-- -k TCP(TLS)握手完成后保持长连接并在此长连接上发送r(r为参数-r)个Query请求，每个concurrency保持一个长连接。默认：关
-- -c 并发数。若使用-k，则-c的数量即为长连接的数量。默认：1
-- -t 每个连接持续的时间，持续时间内将持续发送请求，覆盖-r选项。默认：0
+- -B 自定义request的Body。默认：空
+- -H 自定义Request Header头。使用'header1:v1;header2:v2'的格式，以';'分隔，单引号括起来。默认：空
+- -c 并发数。每个并发会建立一个transport连接。
+- -h 帮助。
+- -k keep-Alive。如果使用该项，建立的transport建立都为长连接。如果不使用，则全为短连接。
+- -m HTTP Method。自定义request的Method方法，默认为GET。
+- -o 打印response的payload，默认不打印。
 - -r 每个连接上的请求数。注意：此参数与-t冲突，若指定了-t，则此选项无效。默认：0
 - -s 指定TLS握手时的chipersuite(加密套件)。默认：TLS_RSA_WITH_RC4_128_SHA
-- -u 服务的url。组成 protocol://hostname:port/path。protocol有http、https。默认：https://0.0.0.0:28080/，此时protocol：https，hostname:0.0.0.0，port：28080，path：/
+- -t 每个连接持续的时间，持续时间内将持续发送请求，覆盖-r选项。默认：0
+- -u 服务的url。组成 protocol://hostname:port/path。protocol有http、https。默认：https://0.0.0.0:28080/，此时protocol：https，hostname:0.0.0.0，port：28080，path：/ 
 注：protocol要与port匹配。若要向HTTP发送压力，则需要将protocol改为http，port改为对应的端口，例如80。
-- -h 帮助。
-- -H 指定request Header头。使用方式 -H '["Host:baike.baidu.com","Connection:Keep-alive"]' 注：只有在连接上发送query请求时此参数才有效(即添加-k参数) 。注意格式：中括号外用单引号括起来，中括号内每个元素使用双引号"括起来，如果元素大于1个，元素间使用逗号隔开。不按此格式书写的-H将解析失败。
+- -w withRequet。当transport建完成时，是否发送query。和-t -r一起使用，发送的query数量由这两个参数决定。
 
 #Example
 e.g. HTTPS QPS
 
-> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -H '["Host:baike.baidu.com"]'  
+> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -w -H 'Host:baike.baidu.com'  
 
 > Server Software:bfe/1.0.8.2  
 
@@ -80,7 +92,7 @@ e.g. HTTPS QPS
 > Non2XXCode:0 
 
 
-#####由于使用了-k参数，故2个并发建立了两个长连接，每个长连接发送10个Request请求。此为一个QPS测试的案例。
+#####由于使用了-k参数，故2个并发建立了两个长连接，-w 每个长连接发送10个Request请求。此为一个QPS测试的案例。
 ####输出说明：
 Server Software为请求的后端服务器</br>
 Server Hostname为请求的Server HostName</br>
@@ -98,7 +110,7 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -H '["Host:baike.baidu.com"]'  
+> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -w -H 'Host:baike.baidu.com'  
 
 > Server Software: 
 
@@ -106,7 +118,8 @@ e.g. HTTPS CPS
 
 > Server Port:443   
 
-> Request Headers: ["Host:baike.baidu.com"]  
+> Request Headers: 
+>   Host:baike.baidu.com  
 
 > Document Path:/index.html  
 
@@ -128,7 +141,8 @@ e.g. HTTPS CPS
 
 > Non2XXCode:0
 
-此案例没有使用-k，没有发送query，Header头部也没有解析(因为是没有意义的),server software也为空，Document Length为0.都为短连接。-t 5000运行了5000ms。-c 2 两个并发，每个并发持续建立连接、关闭连接，不发送query。为CPS的性能测试。
+此案例没有使用-k，即都为短连接。-t 5000运行了5000ms，在此期间一直建立连接。-w ，在每个连接上发送一个请求。-c 2 两个并发。
+为CPS的性能测试。
 
 #License
    Copyright 2015 Albus <albus@shaheng.me>.
