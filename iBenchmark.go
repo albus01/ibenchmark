@@ -25,6 +25,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"runtime"
 	"strings"
@@ -59,14 +60,15 @@ var CipherSuites = map[string]uint16{
 var (
 	help        *bool   = flag.Bool("h", false, "show help")
 	url         *string = flag.String("u", "https://0.0.0.0:28080/", "server url")
-	concurrency *int    = flag.Int("c", 1, "concurrency")
-	reqNum      *int    = flag.Int("r", 0, "total requests per connection")
-	dur         *int    = flag.Int("t", 0, "timelimit (msec)")
-	withReq     *bool   = flag.Bool("k", false, "send request after handshake on the keep-alive connection")
-	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite")
+	concurrency *int    = flag.Int("c", 1, "concurrency:the worker's number,1 default")
+	reqNum      *int    = flag.Int("r", 0, "total requests per connection,0 default")
+	dur         *int    = flag.Int("t", 0, "timelimit (msec),0 default")
+	keepAlive   *bool   = flag.Bool("k", false, "keep the connections every worker established alive,false default")
+	withReq     *bool   = flag.Bool("w", false, "send request after handshake connection,false default")
+	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite,TLS_RSA_WITH_RC4_128_SHA default")
 	method      *string = flag.String("m", "GET", "HTTP Method,GET default")
-	headers     *string = flag.String("H", "", "request Headers")
-	body        *string = flag.String("B", "", "request Body")
+	headers     *string = flag.String("H", "", "request Headers,empty default")
+	body        *string = flag.String("B", "", "request Body,empty default")
 	out         *bool   = flag.Bool("o", false, "print response body")
 )
 
@@ -112,6 +114,7 @@ func printHelp() {
 	for k := range CipherSuites {
 		fmt.Printf("  %s\n", k)
 	}
+	os.Exit(1)
 }
 
 func main() {
@@ -124,11 +127,15 @@ func main() {
 	flag.Parse()
 	if *help {
 		printHelp()
-		return
 	}
+	//http https support only
 	proto = (*url)[:strings.Index(*url, ":")]
 	if proto == "http" {
 		swithHttp = true
+	} else {
+		if proto != "https" {
+			printHelp()
+		}
 	}
 	host = (*url)[strings.Index(*url, "//")+2 : strings.LastIndexAny(*url, ":")]
 	port = (*url)[strings.LastIndex(*url, ":")+1 : strings.LastIndex(*url, "/")]
@@ -141,14 +148,12 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 				printHelp()
-				return
 			}
 			header.Set(match[1], match[2])
 		}
 	}
 	if host == "" || port == "" || path == "" || proto == "" {
 		printHelp()
-		return
 	}
 	runtime.GOMAXPROCS(8)
 
@@ -167,7 +172,7 @@ func main() {
 	start := time.Now()
 	for i := 0; i < *concurrency; i = i + 1 {
 		finChan[i] = make(chan bool)
-		go worker(*reqNum, timeout, reporter, finChan[i], i)
+		go worker(*reqNum, timeout, reporter, finChan[i])
 	}
 
 	// wait for finish
@@ -179,7 +184,7 @@ func main() {
 	}
 	duration := time.Since(start).Nanoseconds() / (1000 * 1000)
 	reporter.TimeDur = duration
-	if *withReq {
+	if *keepAlive {
 		reporter.RequestPerSecond = int(float64(reporter.TotalRequest) / (float64(reporter.TimeDur) / 1000))
 		reporter.ConnectionPerSecond = 0
 	} else {
@@ -190,6 +195,7 @@ func main() {
 	for key, _ := range servers {
 		server = fmt.Sprintf("%s %s", server, key)
 	}
+	//generate header info
 	reporter.Server = server
 	for k, v := range header {
 		var val string
@@ -202,6 +208,7 @@ func main() {
 	reporter.Printer()
 }
 
+//parse headers:'header1:v1;header2:v2'
 func parseHeader(in, reg string) (matches []string, err error) {
 	re := regexp.MustCompile(reg)
 	matches = re.FindStringSubmatch(in)
@@ -211,6 +218,9 @@ func parseHeader(in, reg string) (matches []string, err error) {
 	return
 }
 
+//establish a transport connection,and send queries if withReq on the connection
+//and the queries depend on the param dur or requests.if both were setted,depend on dur.See worker func.
+//otherwise close the connection immediately when established.
 func (r *Reporter) GetResponse(conn *net.Conn) error {
 	var resp *http.Response
 	var err error
@@ -218,14 +228,14 @@ func (r *Reporter) GetResponse(conn *net.Conn) error {
 	procStart := time.Now()
 	r.TotalRequest += 1
 	if !swithHttp {
-		if !*withReq {
+		if !*keepAlive {
 			resp, err = HTTPSGet(cipher)
 		} else {
 			resp, err = HTTPSGet_KeepAlive(cipher, conn)
 		}
 
 	} else {
-		if !*withReq {
+		if !*keepAlive {
 			resp, err = HTTPGet()
 		} else {
 			resp, err = HTTPGet_KeepAlive(conn)
@@ -255,7 +265,10 @@ func (r *Reporter) GetResponse(conn *net.Conn) error {
 	return err
 }
 
-func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan bool, index int) {
+//init a go routine,send queries on the transport layer ,the queries number depend on the reqNum or timeout.
+//And if both were setted,depends on timeout.
+//the finChan notify the main process wether this go routine has finished
+func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan bool) {
 	end_time := time.After(timeout)
 	var conn net.Conn
 
@@ -297,6 +310,7 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 
 }
 
+//establish a new tls connection and send send query if withReq
 func HTTPSGet(cipherSuite uint16) (*http.Response, error) {
 	// create tls config
 	config := tls.Config{
@@ -317,6 +331,7 @@ func HTTPSGet(cipherSuite uint16) (*http.Response, error) {
 	}
 }
 
+//establish a new tls connection first time,and later reuse the connection,send query if withReq
 func HTTPSGet_KeepAlive(cipherSuite uint16, conn *net.Conn) (*http.Response, error) {
 	// create tls config
 	config := tls.Config{
@@ -334,14 +349,17 @@ func HTTPSGet_KeepAlive(cipherSuite uint16, conn *net.Conn) (*http.Response, err
 		}
 
 	}
-	resp, err := SendQuery(*conn)
-	return resp, err
+	if *withReq {
+		return SendQuery(*conn)
+	} else {
+		return nil, nil
+	}
 }
 
+//establish a new tcp connection and send query if withReq
 func HTTPGet() (*http.Response, error) {
 	conn, err := net.Dial(network, address)
 	if err != nil {
-		fmt.Errorf("client: dial: %s", err)
 		return nil, err
 	}
 
@@ -352,23 +370,32 @@ func HTTPGet() (*http.Response, error) {
 	}
 }
 
+//establish a new tcp connection first time,and later reuse the connection,send query if withReq
 func HTTPGet_KeepAlive(conn *net.Conn) (*http.Response, error) {
 	var err error
 	if *conn == nil {
 		*conn, err = net.Dial(network, address)
 		if err != nil {
-			fmt.Errorf("client: dial: %s", err)
 			return nil, err
 		}
 
 	}
-	resp, err := SendQuery(*conn)
-	return resp, err
+	if *withReq {
+		return SendQuery(*conn)
+	} else {
+		return nil, nil
+	}
 }
 
+//send query on the established connection,and get the response
 func SendQuery(conn net.Conn) (*http.Response, error) {
-
+	if conn == nil {
+		return nil, errors.New("send queries on the nil or closed connection")
+	}
 	req, err := http.NewRequest(*method, *url, strings.NewReader(*body))
+	if err != nil {
+		return nil, err
+	}
 	req.Header = header
 	if header.Get("Host") != "" {
 		//I think this should be a golang http pkg's bug.
