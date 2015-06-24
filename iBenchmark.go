@@ -288,8 +288,10 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 				err := reporter.GetResponse(&conn)
 				if err != nil {
 					fmt.Println(fmt.Sprintf("[ERROR]:%s", err))
-					conn.Close()
-					conn = nil
+					if conn != nil {
+						conn.Close()
+						conn = nil
+					}
 				}
 
 			}
@@ -300,8 +302,10 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 			err := reporter.GetResponse(&conn)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("[ERROR]:%s", err))
-				conn.Close()
-				conn = nil
+				if conn != nil {
+					conn.Close()
+					conn = nil
+				}
 			}
 		}
 		finChan <- true
