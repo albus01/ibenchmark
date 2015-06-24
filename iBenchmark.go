@@ -73,15 +73,16 @@ var (
 )
 
 var (
-	proto     string
-	host      string
-	port      string
-	address   string
-	path      string
-	swithHttp bool            = false
-	network   string          = "tcp"
-	servers   map[string]bool = make(map[string]bool)
-	header    http.Header     = make(http.Header)
+	proto        string
+	host         string
+	port         string
+	address      string
+	path         string
+	swithHttp    bool            = false
+	network      string          = "tcp"
+	servers      map[string]bool = make(map[string]bool)
+	header       http.Header     = make(http.Header)
+	cipherSuites []uint16
 )
 
 type Reporter struct {
@@ -155,6 +156,11 @@ func main() {
 	if host == "" || port == "" || path == "" || proto == "" {
 		printHelp()
 	}
+	ciphers := strings.Split(*cipherSuite, ",")
+	for _, c := range ciphers {
+		cipherSuites = append(cipherSuites, CipherSuites[c])
+	}
+
 	runtime.GOMAXPROCS(8)
 
 	timeout := time.Duration(*dur) * time.Millisecond
@@ -224,14 +230,13 @@ func parseHeader(in, reg string) (matches []string, err error) {
 func (r *Reporter) GetResponse(conn *net.Conn) error {
 	var resp *http.Response
 	var err error
-	cipher := CipherSuites[*cipherSuite]
 	procStart := time.Now()
 	r.TotalRequest += 1
 	if !swithHttp {
 		if !*keepAlive {
-			resp, err = HTTPSGet(cipher)
+			resp, err = HTTPSGet()
 		} else {
-			resp, err = HTTPSGet_KeepAlive(cipher, conn)
+			resp, err = HTTPSGet_KeepAlive(conn)
 		}
 
 	} else {
@@ -315,12 +320,12 @@ func worker(reqNum int, timeout time.Duration, reporter *Reporter, finChan chan 
 }
 
 //establish a new tls connection and send send query if withReq
-func HTTPSGet(cipherSuite uint16) (*http.Response, error) {
+func HTTPSGet() (*http.Response, error) {
 	// create tls config
 	config := tls.Config{
 		InsecureSkipVerify:     true,
 		SessionTicketsDisabled: true,
-		CipherSuites:           []uint16{cipherSuite},
+		CipherSuites:           cipherSuites,
 	}
 	// connect to tls server
 	conn, err := tls.Dial(network, address, &config)
@@ -336,12 +341,12 @@ func HTTPSGet(cipherSuite uint16) (*http.Response, error) {
 }
 
 //establish a new tls connection first time,and later reuse the connection,send query if withReq
-func HTTPSGet_KeepAlive(cipherSuite uint16, conn *net.Conn) (*http.Response, error) {
+func HTTPSGet_KeepAlive(conn *net.Conn) (*http.Response, error) {
 	// create tls config
 	config := tls.Config{
 		InsecureSkipVerify:     true,
 		SessionTicketsDisabled: true,
-		CipherSuites:           []uint16{cipherSuite},
+		CipherSuites:           cipherSuites,
 	}
 	var err error
 	// connect to tls server
