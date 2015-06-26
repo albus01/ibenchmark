@@ -60,7 +60,7 @@ iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标�
 #Example
 e.g. HTTPS QPS
 
-> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -w -H 'Host:baike.baidu.com'  
+> $go run iBenchmark -c 2 -r 10 -u https://www.baidu.com:443/index.html -k -w -H "Host:baike.baidu.com"  
 
 > Server Software:bfe/1.0.8.2  
 
@@ -110,7 +110,7 @@ Non2XXCode 不是200~299之间的HTTP 状态码</br>
 
 e.g. HTTPS CPS
 
-> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -w -H 'Host:baike.baidu.com'  
+> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com:443/index.html -w -H "Host:baike.baidu.com"  
 
 > Server Software: 
 
