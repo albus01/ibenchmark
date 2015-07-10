@@ -1,6 +1,7 @@
 # iBenchmark
-A benckmark that can generate http(s)'s query by short and long connection
-iBenchmark使用Go语言研发，为测试HTTPS Server的QPS、CPS性能指标而设计。最初版本只能测试HTTPS短连接，即CPS指标。囊括了ab、wrk的特性，支持HTTP以及HTTPS的长连接、短连接，可测试HTTPS、HTTP的QPS、CPS性能指标。
+iBenchmark is a benchmark send queries to a web application which include the short connections and long connections.So you can use it to test the web application's both QPS (queries per second) and CPS (connections per second).
+
+It also support the SPDY.
 
 #Install
 Simple as it takes to type the following command:
