@@ -85,9 +85,11 @@ var (
 	servers      map[string]bool = make(map[string]bool)
 	header       http.Header     = make(http.Header)
 	cipherSuites []uint16
+	portMap      = map[string]string{"http": "80", "https": "443"}
 )
 
-func printHelp() {
+func printHelp(err interface{}) {
+	fmt.Println(err)
 	fmt.Println("Usage: iBenchmark [options]")
 	flag.PrintDefaults()
 	fmt.Printf("\ncihper suite:\n")
@@ -100,25 +102,24 @@ func printHelp() {
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println(err)
-			printHelp()
+			printHelp(err)
 		}
 	}()
 	flag.Parse()
 	if *help {
-		printHelp()
+		printHelp(nil)
 	}
 	//http https support only
 	url, err := gourl.ParseRequestURI(*url)
 	if err != nil {
-		printHelp()
+		printHelp(err)
 	}
 	proto = url.Scheme
 	if proto != "http" && proto != "https" {
-		printHelp()
+		printHelp(errors.New("only support http or https"))
 	}
-	if h, p, err := net.SplitHostPort(url.Host); err != nil {
-		printHelp()
+	if h, p, err := net.SplitHostPort(canonicalAddr(url)); err != nil {
+		printHelp(err)
 	} else {
 		host = h
 		port = p
@@ -131,14 +132,13 @@ func main() {
 		for _, h := range headers {
 			match, err := parseHeader(h, headerRegexp)
 			if err != nil {
-				fmt.Println(err)
-				printHelp()
+				printHelp(err)
 			}
 			header.Set(match[1], match[2])
 		}
 	}
 	if host == "" || port == "" || path == "" || proto == "" {
-		printHelp()
+		printHelp("host port path proto must have value")
 	}
 	ciphers := strings.Split(*cipherSuite, ",")
 	for _, c := range ciphers {
@@ -197,6 +197,14 @@ func main() {
 	time.Sleep(1 * time.Second)
 	reporter.Printer()
 }
+func canonicalAddr(url *gourl.URL) string {
+	addr := url.Host
+	if !hasPort(addr) {
+		return addr + ":" + portMap[url.Scheme]
+	}
+	return addr
+}
+func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
 
 //and the queries depend on the param dur or requests.if both were setted,depend on dur.See worker func.
 //otherwise close the connection immediately when established.
