@@ -9,7 +9,7 @@ Simple as it takes to type the following command:
 
 #Usage
 
-> Usage: iBenchmark [options]  
+> Usage: iBench [options]  
 
 > -B="": request Body,empty default
 
