@@ -155,7 +155,6 @@ func (t *Transport) doHTTP(conn net.Conn, req *http.Request) (*http.Response, er
 // request.
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	u := req.URL
-	fmt.Println("@@@@@@@@@@@@@@@@@@@")
 	// Make sure the URL host contains the port.
 	if !strings.Contains(u.Host, ":") {
 		switch u.Scheme {

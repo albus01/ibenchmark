@@ -79,15 +79,11 @@ func (t *Transport) connectMethodForRequest(treq *http.Request) (cm connectMetho
 func (t *Transport) getConn(cm connectMethod) (*net.Conn, error) {
 	if !t.DisableKeepAlives {
 		if t.Conn == nil {
-			fmt.Println("t.Conn is nil")
 			conn, err := t.dialConn(cm)
 			if err != nil {
 				return nil, err
 			}
 			t.Conn = *conn
-			if t.Conn == nil {
-				fmt.Println("t.Conn is still nil")
-			}
 			return conn, nil
 		} else {
 			return &t.Conn, nil
