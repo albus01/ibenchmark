@@ -2,12 +2,11 @@ package spdy2
 
 import (
 	"errors"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2/frames"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2/frames"
 )
 
 // Ping is used by spdy.PingServer and spdy.PingClient to send

@@ -8,9 +8,8 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
 	"io"
-
-	"github.com/SlyMarbo/spdy/common"
 )
 
 type CREDENTIAL struct {

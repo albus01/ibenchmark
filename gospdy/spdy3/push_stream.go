@@ -7,11 +7,10 @@ package spdy3
 import (
 	"errors"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy3/frames"
 	"net/http"
 	"sync"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy3/frames"
 )
 
 // PushStream is a structure that implements the

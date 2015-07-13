@@ -8,7 +8,7 @@ import (
 	"io"
 	logging "log"
 
-	"github.com/SlyMarbo/spdy/common"
+	"github.com/albus01/ibenchmark/gospdy/common"
 )
 
 var log = common.GetLogger()

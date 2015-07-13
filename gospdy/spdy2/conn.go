@@ -7,14 +7,13 @@ package spdy2
 import (
 	"bufio"
 	"crypto/tls"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2/frames"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2/frames"
 )
 
 // Conn is a spdy.Conn implementing SPDY/2. This is used in both

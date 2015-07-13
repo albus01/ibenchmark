@@ -3,12 +3,11 @@ package spdy2
 import (
 	"errors"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2/frames"
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2/frames"
 )
 
 // Request is used to make a client request.

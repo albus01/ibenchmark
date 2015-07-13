@@ -2,11 +2,10 @@ package spdy3
 
 import (
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy3/frames"
 	"net/http"
 	"net/url"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy3/frames"
 )
 
 // processFrame handles the initial processing of the given

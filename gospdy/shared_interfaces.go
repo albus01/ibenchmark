@@ -1,13 +1,12 @@
 package spdy
 
 import (
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2"
+	"github.com/albus01/ibenchmark/gospdy/spdy3"
 	"io"
 	"net"
 	"net/http"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2"
-	"github.com/SlyMarbo/spdy/spdy3"
 )
 
 // Connection represents a SPDY connection. The connection should

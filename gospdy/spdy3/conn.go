@@ -8,14 +8,13 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy3/frames"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy3/frames"
 )
 
 // Conn is a spdy.Conn implementing SPDY/3. This is used in both

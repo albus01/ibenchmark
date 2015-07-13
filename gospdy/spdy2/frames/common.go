@@ -7,8 +7,7 @@ package frames
 import (
 	"bufio"
 	"errors"
-
-	"github.com/SlyMarbo/spdy/common"
+	"github.com/albus01/ibenchmark/gospdy/common"
 )
 
 // ReadFrame reads and parses a frame from reader.

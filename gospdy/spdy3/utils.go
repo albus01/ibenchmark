@@ -5,7 +5,7 @@
 package spdy3
 
 import (
-	"github.com/SlyMarbo/spdy/common"
+	"github.com/albus01/ibenchmark/gospdy/common"
 )
 
 // defaultServerSettings are used in initialising the connection.

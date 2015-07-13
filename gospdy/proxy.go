@@ -12,7 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/SlyMarbo/spdy/common"
+	"github.com/albus01/ibenchmark/gospdy/common"
 )
 
 // Connect is used to perform connection

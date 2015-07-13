@@ -285,7 +285,11 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 	var tr http.RoundTripper
 	switch {
 	case *SP:
-		tr = &spdy.Transport{}
+		tr = &spdy.Transport{
+			TLSClientConfig:   &config,
+			DisableKeepAlives: !*keepAlive,
+		}
+		//tr = spdy.NewTransport(true)
 	default:
 		tr = &ibench.Transport{
 			DisableKeepAlives: !*keepAlive,

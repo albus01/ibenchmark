@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
 	"io"
 	"net/http"
-
-	"github.com/SlyMarbo/spdy/common"
 )
 
 type SYN_STREAM struct {

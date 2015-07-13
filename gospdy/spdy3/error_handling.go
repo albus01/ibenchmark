@@ -1,12 +1,11 @@
 package spdy3
 
 import (
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy3/frames"
 	"io"
 	"net"
 	"time"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy3/frames"
 )
 
 // check returns the error condition and

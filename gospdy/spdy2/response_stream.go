@@ -8,12 +8,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2/frames"
 	"net/http"
 	"strconv"
 	"sync"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2/frames"
 )
 
 // ResponseStream is a structure that implements the

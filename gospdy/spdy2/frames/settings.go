@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/albus01/ibenchmark/gospdy/common"
 	"io"
 	"sort"
-
-	"github.com/SlyMarbo/spdy/common"
 )
 
 type SETTINGS struct {

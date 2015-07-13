@@ -6,13 +6,12 @@ package spdy
 
 import (
 	"crypto/tls"
+	"github.com/albus01/ibenchmark/gospdy/common"
+	"github.com/albus01/ibenchmark/gospdy/spdy2"
+	"github.com/albus01/ibenchmark/gospdy/spdy3"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/SlyMarbo/spdy/common"
-	"github.com/SlyMarbo/spdy/spdy2"
-	"github.com/SlyMarbo/spdy/spdy3"
 )
 
 // SetMaxBenignErrors is used to modify the maximum number
