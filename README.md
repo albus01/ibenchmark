@@ -12,7 +12,7 @@ Simple as it takes to type the following command:
 Or if you wanna build it on the local if you already have download the src,you can type following command:
 
 > ./install_local.sh <br>
-> In this way,the lib won't install on your GOPATH,this will install them on the {$pwd}/.ibenchmark.
+> In this way,the lib won't install on go lib dir,this will install them on the {$pwd}/.ibenchmark.
 
 #Usage
 
