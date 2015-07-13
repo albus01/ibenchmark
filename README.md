@@ -7,7 +7,12 @@ It also supports the SPDY.
 #Install
 Simple as it takes to type the following command:
 
-> ./Install.sh
+> ./install.sh
+
+Or if you wanna build it on the local if you already have download the src,you can type following command:
+
+> ./install_local.sh
+> In this way,the lib won't install on your GOPATH,this will install them on the {$pwd}/.ibenchmark.
 
 #Usage
 
