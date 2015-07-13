@@ -1,117 +1,125 @@
+// Copyright 2013 Jamie Hall. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package spdy
 
 import (
-	"bytes"
-	"crypto/rand"
 	"crypto/tls"
-	"fmt"
-	"log"
+	"errors"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"time"
+
+	"github.com/SlyMarbo/spdy/common"
+	"github.com/SlyMarbo/spdy/spdy2"
+	"github.com/SlyMarbo/spdy/spdy3"
 )
 
-func serverConnectThread(sock net.Conn, handler http.Handler, fallback chan net.Conn) {
-	addr := sock.RemoteAddr()
-
-	version := 2
-
-	if t, ok := sock.(*tls.Conn); ok {
-		if err := t.Handshake(); err != nil {
-			return
-		}
-
-		s := t.ConnectionState()
-
-		if !s.NegotiatedProtocolIsMutual ||
-			s.NegotiatedProtocol == "" ||
-			s.NegotiatedProtocol == "http/1.1" {
-
-			// Hand the connection off to the standard HTTPS server
-			if fallback != nil {
-				fallback <- sock
-			} else {
-				sock.Close()
-			}
-			return
-		}
-
-		switch t.ConnectionState().NegotiatedProtocol {
-		case "spdy/2":
-			version = 2
-		case "spdy/3":
-			version = 3
-		default:
-			panic("spdy-internal: unexpected negotiated protocol")
-		}
+// NewServerConn is used to create a SPDY connection, using the given
+// net.Conn for the underlying connection, and the given http.Server to
+// configure the request serving.
+func NewServerConn(conn net.Conn, server *http.Server, version, subversion int) (common.Conn, error) {
+	if conn == nil {
+		return nil, errors.New("Error: Connection initialised with nil net.conn.")
+	}
+	if server == nil {
+		return nil, errors.New("Error: Connection initialised with nil server.")
 	}
 
-	defer func() {
-		if err := recover(); err != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "spdy: panic serving %s: %v\n", addr.String(), err)
-			buf.Write(debug.Stack())
-			log.Print(buf.String())
-		}
-	}()
+	switch version {
+	case 3:
+		return spdy3.NewConn(conn, server, subversion), nil
 
-	c := NewConnection(sock, handler, version, true)
-	c.Run()
+	case 2:
+		return spdy2.NewConn(conn, server), nil
+
+	default:
+		return nil, errors.New("Error: Unsupported SPDY version.")
+	}
 }
 
-// serve runs the server accept loop
-func serve(listener net.Listener, handler http.Handler, fallback chan net.Conn) error {
-
-	if handler == nil {
-		handler = http.DefaultServeMux
-	}
-
-	for {
-		sock, err := listener.Accept()
-		if err != nil {
-			return err
-		}
-
-		Log("accept %s\n", sock.RemoteAddr())
-
-		// Do the TLS negotation on a seperate thread to avoid
-		// blocking the accept loop
-		go serverConnectThread(sock, handler, fallback)
-	}
-
-	panic("unreachable")
-}
-
-// ListenAndServe listens for unencrypted SPDY connections on addr. Because it
-// does not use TLS/SSL of this it can't use the next protocol negotation in
-// TLS to fall back on standard HTTP.
-func ListenAndServe(addr string, handler http.Handler) error {
-	if addr == "" {
-		addr = ":http"
-	}
-	conn, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	return serve(conn, handler, nil)
-}
-
-// ListenAndServeTLS listens for encrpyted SPDY or HTTPS connections on addr.
-// It uses the TLS next negotation protocol to fallback on standard https.
+// ListenAndServeTLS listens on the TCP network address addr
+// and then calls Serve with handler to handle requests on
+// incoming connections.  Handler is typically nil, in which
+// case the DefaultServeMux is used. Additionally, files
+// containing a certificate and matching private key for the
+// server must be provided. If the certificate is signed by
+// a certificate authority, the certFile should be the
+// concatenation of the server's certificate followed by the
+// CA's certificate.
+//
+// See examples/server/server.go for a simple example server.
 func ListenAndServeTLS(addr string, certFile string, keyFile string, handler http.Handler) error {
+	npnStrings := npn()
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		TLSConfig: &tls.Config{
+			NextProtos: npnStrings,
+		},
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+	}
+
+	for _, str := range npnStrings {
+		switch str {
+		case "spdy/2":
+			server.TLSNextProto[str] = spdy2.NextProto
+		case "spdy/3":
+			server.TLSNextProto[str] = spdy3.NextProto
+		case "spdy/3.1":
+			server.TLSNextProto[str] = spdy3.NextProto1
+		}
+	}
+
+	return server.ListenAndServeTLS(certFile, keyFile)
+}
+
+// ListenAndServeSpdyOnly listens on the TCP network address addr
+// and then calls Serve with handler to handle requests on
+// incoming connections.  Handler is typically nil, in which
+// case the DefaultServeMux is used. Additionally, files
+// containing a certificate and matching private key for the
+// server must be provided. If the certificate is signed by
+// a certificate authority, the certFile should be the
+// concatenation of the server's certificate followed by the
+// CA's certificate.
+//
+// IMPORTANT NOTE: Unlike spdy.ListenAndServeTLS, this function
+// will ONLY serve SPDY. HTTPS requests are refused.
+//
+// See examples/spdy_only_server/server.go for a simple example server.
+func ListenAndServeSpdyOnly(addr string, certFile string, keyFile string, handler http.Handler) error {
+	npnStrings := npn()
 	if addr == "" {
 		addr = ":https"
 	}
-	cfg := &tls.Config{
-		Rand:         rand.Reader,
-		Time:         time.Now,
-		NextProtos:   []string{"spdy/3", "spdy/2", "http/1.1"},
-		Certificates: make([]tls.Certificate, 1),
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		TLSConfig: &tls.Config{
+			NextProtos:   npnStrings,
+			Certificates: make([]tls.Certificate, 1),
+		},
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+	}
+
+	for _, str := range npnStrings {
+		switch str {
+		case "spdy/2":
+			server.TLSNextProto[str] = spdy2.NextProto
+		case "spdy/3":
+			server.TLSNextProto[str] = spdy3.NextProto
+		case "spdy/3.1":
+			server.TLSNextProto[str] = spdy3.NextProto1
+		}
 	}
 
 	var err error
-	cfg.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+	server.TLSConfig.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return err
 	}
@@ -121,45 +129,140 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler htt
 		return err
 	}
 
-	tlsListener := tls.NewListener(conn, cfg)
+	tlsListener := tls.NewListener(conn, server.TLSConfig)
+	defer tlsListener.Close()
 
-	fallback := &httpsListener{
-		error:  make(chan error),
-		accept: make(chan net.Conn),
-		addr:   tlsListener.Addr(),
+	// Main loop
+	var tempDelay time.Duration
+	for {
+		rw, e := tlsListener.Accept()
+		if e != nil {
+			if ne, ok := e.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				log.Printf("Accept error: %v; retrying in %v", e, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+			return e
+		}
+		tempDelay = 0
+		go serveSPDY(rw, server)
+	}
+}
+
+// ListenAndServeSPDYNoNPN creates a server that listens exclusively
+// for SPDY and (unlike the rest of the package) will not support
+// HTTPS.
+func ListenAndServeSPDYNoNPN(addr string, certFile string, keyFile string, handler http.Handler, version, subversion int) error {
+	if addr == "" {
+		addr = ":https"
+	}
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		TLSConfig: &tls.Config{
+			Certificates: make([]tls.Certificate, 1),
+		},
 	}
 
-	go (&http.Server{Addr: addr, Handler: handler}).Serve(fallback)
-
-	err = serve(tlsListener, handler, fallback.accept)
-	fallback.error <- err
-	return err
-}
-
-// httpsListener is a fake listener for feeding to the standard HTTPS server.
-//
-// This is so that we can hand it connections which negotiate https as their
-// protocol through TLS next protocol negotation.
-type httpsListener struct {
-	error  chan error
-	accept chan net.Conn
-	addr   net.Addr
-}
-
-func (s *httpsListener) Accept() (net.Conn, error) {
-	select {
-	case err := <-s.error:
-		return nil, err
-	case sock := <-s.accept:
-		return sock, nil
+	var err error
+	server.TLSConfig.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return err
 	}
-	panic("unreachable")
+
+	conn, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	tlsListener := tls.NewListener(conn, server.TLSConfig)
+	defer tlsListener.Close()
+
+	// Main loop
+	var tempDelay time.Duration
+	for {
+		rw, e := tlsListener.Accept()
+		if e != nil {
+			if ne, ok := e.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				log.Printf("Accept error: %v; retrying in %v", e, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+			return e
+		}
+		tempDelay = 0
+		go serveSPDYNoNPN(rw, server, version, subversion)
+	}
 }
 
-func (s *httpsListener) Close() error {
-	return nil
+func serveSPDY(conn net.Conn, srv *http.Server) {
+	defer common.Recover()
+
+	tlsConn, ok := conn.(*tls.Conn)
+	if !ok { // Only allow TLS connections.
+		return
+	}
+
+	if d := srv.ReadTimeout; d != 0 {
+		conn.SetReadDeadline(time.Now().Add(d))
+	}
+	if d := srv.WriteTimeout; d != 0 {
+		conn.SetWriteDeadline(time.Now().Add(d))
+	}
+	if err := tlsConn.Handshake(); err != nil {
+		return
+	}
+
+	tlsState := new(tls.ConnectionState)
+	*tlsState = tlsConn.ConnectionState()
+	proto := tlsState.NegotiatedProtocol
+	if fn := srv.TLSNextProto[proto]; fn != nil {
+		fn(srv, tlsConn, nil)
+	}
+	return
 }
 
-func (s *httpsListener) Addr() net.Addr {
-	return s.addr
+func serveSPDYNoNPN(conn net.Conn, srv *http.Server, version, subversion int) {
+	defer common.Recover()
+
+	tlsConn, ok := conn.(*tls.Conn)
+	if !ok { // Only allow TLS connections.
+		return
+	}
+
+	if d := srv.ReadTimeout; d != 0 {
+		conn.SetReadDeadline(time.Now().Add(d))
+	}
+	if d := srv.WriteTimeout; d != 0 {
+		conn.SetWriteDeadline(time.Now().Add(d))
+	}
+	if err := tlsConn.Handshake(); err != nil {
+		return
+	}
+
+	serverConn, err := NewServerConn(tlsConn, srv, version, subversion)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	serverConn.Run()
 }
