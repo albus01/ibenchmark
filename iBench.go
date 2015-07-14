@@ -230,7 +230,7 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 		}
 
 		r.TotalRequest += 1
-		//resp, err = client.Get("https://www.baidu.com")
+		//SPDY MAY BLOCK HERE LONG LONG TIME
 		resp, err = client.Do(req)
 		if err != nil {
 			r.FailedRequest += 1

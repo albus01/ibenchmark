@@ -165,8 +165,9 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			u.Host += ":443"
 		}
 	}
-
+	//fmt.Println("roundtrip process req start")
 	conn, tcpConn, err := t.process(req)
+	//fmt.Println("roundtrip process req end")
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +231,13 @@ func (t *Transport) process(req *http.Request) (common.Conn, net.Conn, error) {
 
 	// Check the SPDY connection pool.
 	conn, ok := t.spdyConns[u.Host]
-	if !ok || u.Scheme == "http" || (conn != nil && conn.Closed()) {
+	if bug := (conn != nil && conn.Closed()); !ok || u.Scheme == "http" || bug {
+		//this exists bugs:server always close the connection,so the conn.Closed.Closed() is true.
+		//And client will dial,it will consume one conn idles,the default idles is 2.So the server close 2 times can make the client block.see:<-t.connLimit[u.Host] in dial()
+		//if do not handle this bug,client will block
+		if bug {
+			t.connLimit[req.URL.Host] <- struct{}{}
+		}
 		tcpConn, err := t.dial(req.URL)
 		if err != nil {
 			return nil, nil, err
