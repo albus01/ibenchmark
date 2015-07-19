@@ -4,6 +4,8 @@ iBenchmark is a benchmark send queries to a web application which similar to wrk
 
 It also supports the SPDY.
 
+<img src="http://www.shaheng.me/images_pri/es/p1.png" width = "400" height = "500" alt="rsa_ex" align=center />
+
 > iBenchmark使用Go语言自研发，为测试HTTPS Server的QPS、CPS性能指标而设计。囊括了ab、wrk的特性，意在为HTTPS的性能测试量身打造，亦支持HTTP的性能测试。
 
 > 特性：
