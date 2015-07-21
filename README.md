@@ -5,6 +5,9 @@ iBenchmark is a benchmark send queries to a web application which similar to wrk
 It also supports the SPDY.
 
 ####Framework:
+
+iBenchmark can take full advantage of your servers' resources.The M parameter set the max cpu cores to use,so you can make enough pressure to the web service which depends on you servers' resources.It init M goroutines to run M workers.And each worker has two goroutines:one to handle the http/https/spdy request,when the request roundTrip is finished,it notify the second.The second to generate some info and finially nofity the worker how many requests has finished.Then the worker exits depending on the numbers of finished requests.
+When all of the workers exits,the main exit and prints the report.
 <img src="http://www.shaheng.me/images_pri/ibench/frame.png" width = "800" height = "500" alt="ibench_frame" align=center />
 ####Result
 <img src="http://www.shaheng.me/images_pri/ibench/result.png" width = "800" height = "300" alt="ibench_result" align=center />
