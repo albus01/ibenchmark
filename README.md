@@ -128,7 +128,7 @@ e.g. HTTPS QPS
 
 e.g. HTTPS CPS
 
-> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com/ -H "Host:baike.baidu.com"  
+> ./iBench -c 2 -t 60 -u https://www.baidu.com/ -H "Host:baike.baidu.com" -H "Connection:close"  
 
 > Server Software: 
 
