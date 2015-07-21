@@ -56,7 +56,7 @@ Or if you wanna build it on the local if you already have download the src,you c
 
 > -B="": request Body,empty default
 
-> -H="": request Headers,empty default
+> -H="": request Headers,empty default.You can set multy headers By -H "x:xx" -H "x:xx"
 
 > -c=1: concurrency:the worker's number,1 default
 
@@ -68,11 +68,11 @@ Or if you wanna build it on the local if you already have download the src,you c
 
 > -o=false: print response body
 
-> -r=0: total requests per connection,0 default
+> -r=1: total requests per connection,1 default
 
 > -s="TLS_RSA_WITH_RC4_128_SHA": cipher suite,TLS_RSA_WITH_RC4_128_SHA default
 
-> -t=0: timelimit (msec),0 default
+> -t=0: timelimit (second),0 default
 
 > -u="https://0.0.0.0:28080/": server url
 
