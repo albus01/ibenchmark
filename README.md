@@ -1,8 +1,8 @@
 # iBenchmark
-iBenchmark is a benchmark send queries to a web application which similar to wrk and Apache Bench(ab).But iBenchmark is more powerful then them.It not only can send queries on alive connections but also can established short connections depand on your willings.So you can use it to test the web application's both QPS (queries per second) and CPS (connections per second).
 
+Bechmark for HTTP,HTTPS,SPDY Server.
 
-It also supports the SPDY.
+iBenchmark is a benchmark send queries to a web application which similar to wrk and Apache Bench(ab).But iBenchmark is more powerful then them.It not only can send queries on alive connections but also can established short connections which send queries on depand on your willings.So you can use it to test the web application's both QPS (queries per second) and CPS (connections per second) performance.
 
 ####Framework:
 
