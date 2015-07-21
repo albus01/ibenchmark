@@ -4,7 +4,13 @@ iBenchmark is a benchmark send queries to a web application which similar to wrk
 
 It also supports the SPDY.
 
+####Framework:
+
+iBenchmark can take full advantage of your servers' resources.The M parameter set the max cpu cores to use,so you can make enough pressure to the web service which depends on you servers' resources.It init M goroutines to run M workers.And each worker has two goroutines:one to handle the http/https/spdy request,when the request roundTrip is finished,it notify the second.The second to generate some info and finially nofity the worker how many requests has finished.Then the worker exits depending on the numbers of finished requests.
+When all of the workers exits,the main exit and prints the report.
 <img src="http://www.shaheng.me/images_pri/ibench/frame.png" width = "800" height = "500" alt="ibench_frame" align=center />
+####Result
+<img src="http://www.shaheng.me/images_pri/ibench/result.png" width = "800" height = "300" alt="ibench_result" align=center />
 
 > iBenchmark使用Go语言自研发，为测试HTTPS Server的QPS、CPS性能指标而设计。囊括了ab、wrk的特性，意在为HTTPS的性能测试量身打造，亦支持HTTP的性能测试。
 
@@ -38,11 +44,11 @@ It also supports the SPDY.
 
 
 #Install
-Simple as it takes to type the following command:
+Simple as it takes to type the following command(online):
 
 > ./install.sh
 
-Or if you wanna build it on the local if you already have download the src,you can type following command:
+Or if you wanna build it on the local if you have already download the src,you can type following command(offline):
 
 > ./install_local.sh <br>
 > In this way,the lib won't install on go lib dir,this will install them on the {$pwd}/.ibenchmark.
@@ -53,7 +59,7 @@ Or if you wanna build it on the local if you already have download the src,you c
 
 > -B="": request Body,empty default
 
-> -H="": request Headers,empty default
+> -H="": request Headers,empty default.You can set multy headers By -H "x:xx" -H "x:xx"
 
 > -c=1: concurrency:the worker's number,1 default
 
@@ -65,11 +71,11 @@ Or if you wanna build it on the local if you already have download the src,you c
 
 > -o=false: print response body
 
-> -r=0: total requests per connection,0 default
+> -r=1: total requests per connection,1 default
 
 > -s="TLS_RSA_WITH_RC4_128_SHA": cipher suite,TLS_RSA_WITH_RC4_128_SHA default
 
-> -t=0: timelimit (msec),0 default
+> -t=0: timelimit (second),0 default
 
 > -u="https://0.0.0.0:28080/": server url
 
@@ -125,7 +131,7 @@ e.g. HTTPS QPS
 
 e.g. HTTPS CPS
 
-> go run iBenchmark -c 2 -t 5000 -u https://www.baidu.com/ -H "Host:baike.baidu.com"  
+> ./iBench -c 2 -t 60 -u https://www.baidu.com/ -H "Host:baike.baidu.com" -H "Connection:close"  
 
 > Server Software: 
 
