@@ -81,6 +81,7 @@ var (
 	header       http.Header     = make(http.Header)
 	cipherSuites []uint16
 	portMap      = map[string]string{"http": "80", "https": "443"}
+	reporter     *ibench.Reporter
 )
 
 type flagHeader []string
@@ -100,135 +101,6 @@ func (f *flagHeader) Set(value string) error {
 	headers[len(headers)-1] = value
 	return nil
 }
-
-func printHelp(err interface{}) {
-	fmt.Println(err)
-	fmt.Println("Usage: iBenchmark [options]")
-	flag.PrintDefaults()
-	fmt.Printf("\ncihper suite:\n")
-	for k := range CipherSuites {
-		fmt.Printf("  %s\n", k)
-	}
-	os.Exit(1)
-}
-
-func main() {
-	defer func() {
-		if err := recover(); err != nil {
-			printHelp(err)
-		}
-	}()
-	flag.Var(&headers, "H", "-H \"xxx\" -H \"xxx\" to set muilty headers")
-	flag.Parse()
-	if *help {
-		printHelp(nil)
-	}
-	//http https support only
-	url, err := gourl.ParseRequestURI(*url)
-	if err != nil {
-		printHelp(err)
-	}
-	proto = url.Scheme
-	if proto != "http" && proto != "https" {
-		printHelp(errors.New("only support http or https"))
-	}
-	if h, p, err := net.SplitHostPort(canonicalAddr(url)); err != nil {
-		printHelp(err)
-	} else {
-		host = h
-		port = p
-	}
-	if path = url.Path; path == "" {
-		path = "/"
-	}
-	if headers != nil {
-		for _, h := range headers {
-			index := strings.Index(h, ":")
-			if index == -1 {
-				printHelp(errors.New("Header format error"))
-			}
-			header.Set(h[:index], h[index+1:])
-		}
-	}
-	if host == "" || port == "" || path == "" || proto == "" {
-		printHelp("host port path proto must have value")
-	}
-	ciphers := strings.Split(*cipherSuite, ",")
-	for _, c := range ciphers {
-		cipherSuites = append(cipherSuites, CipherSuites[c])
-	}
-
-	runtime.GOMAXPROCS(*core)
-
-	timeout := time.Duration(*dur) * time.Second
-	finChan := make([]chan bool, *concurrency)
-
-	reporter := new(ibench.Reporter)
-	reporter.Concurrency = *concurrency
-	reporter.Hostname = host
-	reporter.Port = port
-	reporter.Path = path
-
-	fmt.Println("ibenchmark start ")
-	// start workers
-	start := time.Now()
-	for i := 0; i < *concurrency; i = i + 1 {
-		finChan[i] = make(chan bool)
-		go worker(*reqNum, timeout, reporter, finChan[i])
-	}
-	//report schedule
-	if *verb {
-		go reporter.Reporter()
-	}
-	// wait for finish
-	for i := 0; i < *concurrency; i = i + 1 {
-		switch {
-		case <-(finChan[i]):
-			continue
-		}
-	}
-	duration := time.Since(start).Nanoseconds() / (1000 * 1000)
-	reporter.TimeDur = duration
-	t := float64(reporter.TimeDur) / 1000
-	if *keepAlive {
-		if t == 0 {
-			reporter.RequestPerSecond = 0
-		} else {
-			reporter.RequestPerSecond = int(float64(reporter.TotalRequest) / t)
-		}
-		reporter.ConnectionPerSecond = 0
-	} else {
-		if t == 0 {
-			reporter.ConnectionPerSecond = 0
-		} else {
-			reporter.ConnectionPerSecond = int(float64(reporter.TotalRequest) / t)
-		}
-		reporter.RequestPerSecond = 0
-	}
-	var server string
-	for key, _ := range servers {
-		server = fmt.Sprintf("%s %s", server, key)
-	}
-	//generate header info
-	reporter.Server = server
-	for k, v := range header {
-		var val string
-		for _, v := range v {
-			val += v + " "
-		}
-		reporter.Headers += k + ":" + val + "\r\n"
-	}
-	time.Sleep(1 * time.Second)
-	reporter.Printer()
-}
-func canonicalAddr(url *gourl.URL) string {
-	addr := url.Host
-	if !hasPort(addr) {
-		return addr + ":" + portMap[url.Scheme]
-	}
-	return addr
-}
-func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
 
 //the queries depend on the param dur or requests.if both were setted,depend on dur.See worker func.
 //otherwise close the connection immediately when established.
@@ -346,4 +218,142 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 		finChan <- true
 	}
 
+}
+
+func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			printHelp(err)
+		}
+	}()
+	flag.Var(&headers, "H", "-H \"xxx\" -H \"xxx\" to set muilty headers")
+	flag.Parse()
+	if *help {
+		printHelp(nil)
+	}
+	//http https support only
+	checkAndInitParams()
+	runtime.GOMAXPROCS(*core)
+
+	timeout := time.Duration(*dur) * time.Second
+	finChan := make([]chan bool, *concurrency)
+
+	fmt.Println("ibenchmark start ")
+	// start workers
+	start := time.Now()
+	for i := 0; i < *concurrency; i = i + 1 {
+		finChan[i] = make(chan bool)
+		go worker(*reqNum, timeout, reporter, finChan[i])
+	}
+	//report schedule
+	if *verb {
+		go reporter.Reporter()
+	}
+	// wait for finish
+	for i := 0; i < *concurrency; i = i + 1 {
+		switch {
+		case <-(finChan[i]):
+			continue
+		}
+	}
+	duration := time.Since(start).Nanoseconds() / (1000 * 1000)
+	generateReporter(duration)
+	time.Sleep(1 * time.Second)
+	reporter.Print()
+}
+func generateReporter(duration int64) {
+	reporter.TimeDur = duration
+	t := float64(reporter.TimeDur) / 1000
+	if *keepAlive {
+		if t == 0 {
+			reporter.RequestPerSecond = 0
+		} else {
+			reporter.RequestPerSecond = int(float64(reporter.TotalRequest) / t)
+		}
+		reporter.ConnectionPerSecond = 0
+	} else {
+		if t == 0 {
+			reporter.ConnectionPerSecond = 0
+		} else {
+			reporter.ConnectionPerSecond = int(float64(reporter.TotalRequest) / t)
+		}
+		reporter.RequestPerSecond = 0
+	}
+	var server string
+	for key, _ := range servers {
+		server = fmt.Sprintf("%s %s", server, key)
+	}
+	//generate header info
+	reporter.Server = server
+	for k, v := range header {
+		var val string
+		for _, v := range v {
+			val += v + " "
+		}
+		reporter.Headers += k + ":" + val + "\r\n"
+	}
+
+}
+func initReporter() {
+	reporter = new(ibench.Reporter)
+	reporter.Concurrency = *concurrency
+	reporter.Hostname = host
+	reporter.Port = port
+	reporter.Path = path
+
+}
+func checkAndInitParams() {
+	url, err := gourl.ParseRequestURI(*url)
+	if err != nil {
+		printHelp(err)
+	}
+	proto = url.Scheme
+	if proto != "http" && proto != "https" {
+		printHelp(errors.New("only support http or https"))
+	}
+	if h, p, err := net.SplitHostPort(canonicalAddr(url)); err != nil {
+		printHelp(err)
+	} else {
+		host = h
+		port = p
+	}
+	if path = url.Path; path == "" {
+		path = "/"
+	}
+	if headers != nil {
+		for _, h := range headers {
+			index := strings.Index(h, ":")
+			if index == -1 {
+				printHelp(errors.New("Header format error"))
+			}
+			header.Set(h[:index], h[index+1:])
+		}
+	}
+	if host == "" || port == "" || path == "" || proto == "" {
+		printHelp("host port path proto must have value")
+	}
+	ciphers := strings.Split(*cipherSuite, ",")
+	for _, c := range ciphers {
+		cipherSuites = append(cipherSuites, CipherSuites[c])
+	}
+	initReporter()
+}
+func canonicalAddr(url *gourl.URL) string {
+	addr := url.Host
+	if !hasPort(addr) {
+		return addr + ":" + portMap[url.Scheme]
+	}
+	return addr
+}
+func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
+
+func printHelp(err interface{}) {
+	fmt.Println(err)
+	fmt.Println("Usage: iBenchmark [options]")
+	flag.PrintDefaults()
+	fmt.Printf("\ncihper suite:\n")
+	for k := range CipherSuites {
+		fmt.Printf("  %s\n", k)
+	}
+	os.Exit(1)
 }

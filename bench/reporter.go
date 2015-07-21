@@ -36,7 +36,7 @@ type Reporter struct {
 	Non2XXCode          int
 }
 
-func (r *Reporter) Printer() {
+func (r *Reporter) Print() {
 	var avgT int64
 	if r.TotalRequest == 0 {
 		avgT = 0
