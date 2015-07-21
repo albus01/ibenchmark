@@ -44,11 +44,11 @@ When all of the workers exits,the main exit and prints the report.
 
 
 #Install
-Simple as it takes to type the following command:
+Simple as it takes to type the following command(online):
 
 > ./install.sh
 
-Or if you wanna build it on the local if you already have download the src,you can type following command:
+Or if you wanna build it on the local if you have already download the src,you can type following command(offline):
 
 > ./install_local.sh <br>
 > In this way,the lib won't install on go lib dir,this will install them on the {$pwd}/.ibenchmark.
