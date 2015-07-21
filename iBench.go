@@ -63,11 +63,11 @@ var (
 	keepAlive   *bool   = flag.Bool("k", false, "keep the connections each worker established alive,false default")
 	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite,TLS_RSA_WITH_RC4_128_SHA default")
 	method      *string = flag.String("m", "GET", "HTTP Method,GET default")
-	//headers      = flag.Value("H", []string{}, "request Headers,empty default").([]string{})
-	body *string = flag.String("B", "", "request Body,empty default")
-	out  *bool   = flag.Bool("o", false, "print response body")
-	core *int    = flag.Int("M", 8, "max cores used,8 default")
-	SP   *bool   = flag.Bool("S", false, "turn to SPDY")
+	body        *string = flag.String("B", "", "request Body,empty default")
+	out         *bool   = flag.Bool("o", false, "print response body")
+	core        *int    = flag.Int("M", 8, "max cores used,8 default")
+	SP          *bool   = flag.Bool("S", false, "turn to SPDY")
+	verb        *bool   = flag.Bool("v", true, "print schedule.True default")
 )
 
 var (
@@ -163,7 +163,6 @@ func main() {
 	timeout := time.Duration(*dur) * time.Second
 	finChan := make([]chan bool, *concurrency)
 
-	// number of connections to crypto server cluster
 	reporter := new(ibench.Reporter)
 	reporter.Concurrency = *concurrency
 	reporter.Hostname = host
@@ -177,7 +176,10 @@ func main() {
 		finChan[i] = make(chan bool)
 		go worker(*reqNum, timeout, reporter, finChan[i])
 	}
-
+	//report schedule
+	if *verb {
+		go reporter.Reporter()
+	}
 	// wait for finish
 	for i := 0; i < *concurrency; i = i + 1 {
 		switch {
@@ -228,7 +230,7 @@ func canonicalAddr(url *gourl.URL) string {
 }
 func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
 
-//and the queries depend on the param dur or requests.if both were setted,depend on dur.See worker func.
+//the queries depend on the param dur or requests.if both were setted,depend on dur.See worker func.
 //otherwise close the connection immediately when established.
 func handle_request(start, done chan bool, client *http.Client, r *ibench.Reporter) {
 	for {
@@ -236,7 +238,6 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 		var resp *http.Response
 		var err error
 		var bout bytes.Buffer
-		//req, err := http.NewRequest(*method, "https://www.baidu.com", strings.NewReader(*body))
 		req, err := http.NewRequest(*method, *url, strings.NewReader(*body))
 		if err != nil {
 			r.FailedRequest += 1
@@ -252,7 +253,6 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 		}
 
 		r.TotalRequest += 1
-		//resp, err = client.Get("https://www.baidu.com")
 		resp, err = client.Do(req)
 		if err != nil {
 			r.FailedRequest += 1
@@ -311,7 +311,6 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 			TLSClientConfig:   &config,
 			DisableKeepAlives: !*keepAlive,
 		}
-		//tr = spdy.NewTransport(true)
 	default:
 		tr = &ibench.Transport{
 			DisableKeepAlives: !*keepAlive,
