@@ -36,7 +36,13 @@ type Reporter struct {
 }
 
 func (r *Reporter) Printer() error {
-	report := fmt.Sprintf("Server Software:%s\nServer Hostname:%s\nServer Port:%s\n\nRequest Headers:\n%s\n\nDocument Path:%s\nDocument Length:%d\n\nConcurrency:%d\nTime Duration:%dms\nAvg Time Taken:%dms\n\nComplete Requests:%d\nFailed Request:%d\n\nRequest Per Second:%d\nConnections Per Second:%d\n\nNon2XXCode:%d\n\n", r.Server, r.Hostname, r.Port, r.Headers, r.Path, r.ContentLength, r.Concurrency, r.TimeDur, r.TimeTaken/1000/int64(r.TotalRequest), r.TotalRequest, r.FailedRequest, r.RequestPerSecond, r.ConnectionPerSecond, r.Non2XXCode)
+	var avgT int64
+	if r.TotalRequest == 0 {
+		avgT = 0
+	} else {
+		avgT = r.TimeTaken / 1000 / int64(r.TotalRequest)
+	}
+	report := fmt.Sprintf("Server Software:%s\nServer Hostname:%s\nServer Port:%s\n\nRequest Headers:\n%s\n\nDocument Path:%s\nDocument Length:%d\n\nConcurrency:%d\nTime Duration:%dms\nAvg Time Taken:%dms\n\nComplete Requests:%d\nFailed Request:%d\n\nRequest Per Second:%d\nConnections Per Second:%d\n\nNon2XXCode:%d\n\n", r.Server, r.Hostname, r.Port, r.Headers, r.Path, r.ContentLength, r.Concurrency, r.TimeDur, avgT, r.TotalRequest, r.FailedRequest, r.RequestPerSecond, r.ConnectionPerSecond, r.Non2XXCode)
 	fmt.Println(report)
 	return nil
 }

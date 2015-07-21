@@ -58,21 +58,21 @@ var CipherSuites = map[string]uint16{
 	// https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00.
 	"TLS_FALLBACK_SCSV": uint16(0x5600),
 }
-
+var headers flagHeader
 var (
 	help        *bool   = flag.Bool("h", false, "show help")
 	url         *string = flag.String("u", "https://0.0.0.0:28080/", "server url")
 	concurrency *int    = flag.Int("c", 1, "concurrency:the worker's number,1 default")
-	reqNum      *int    = flag.Int("r", 0, "total requests per connection,0 default")
-	dur         *int    = flag.Int("t", 0, "timelimit (msec),0 default")
+	reqNum      *int    = flag.Int("r", 1, "total requests per connection,0 default")
+	dur         *int    = flag.Int("t", 0, "timelimit (second),0 default")
 	keepAlive   *bool   = flag.Bool("k", false, "keep the connections every worker established alive,false default")
 	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite,TLS_RSA_WITH_RC4_128_SHA default")
 	method      *string = flag.String("m", "GET", "HTTP Method,GET default")
-	headers     *string = flag.String("H", "", "request Headers,empty default")
-	body        *string = flag.String("B", "", "request Body,empty default")
-	out         *bool   = flag.Bool("o", false, "print response body")
-	core        *int    = flag.Int("M", 8, "max cores used,8 default")
-	SP          *bool   = flag.Bool("S", false, "turn to SPDY")
+	//headers      = flag.Value("H", []string{}, "request Headers,empty default").([]string{})
+	body *string = flag.String("B", "", "request Body,empty default")
+	out  *bool   = flag.Bool("o", false, "print response body")
+	core *int    = flag.Int("M", 8, "max cores used,8 default")
+	SP   *bool   = flag.Bool("S", false, "turn to SPDY")
 )
 
 var (
@@ -87,6 +87,24 @@ var (
 	cipherSuites []uint16
 	portMap      = map[string]string{"http": "80", "https": "443"}
 )
+
+type flagHeader []string
+
+func (f *flagHeader) String() string {
+	return fmt.Sprint(headers)
+}
+
+func (f *flagHeader) Set(value string) error {
+	if headers == nil {
+		headers = make(flagHeader, 1)
+	} else {
+		nheaders := make(flagHeader, len(headers)+1)
+		copy(nheaders, headers)
+		headers = nheaders
+	}
+	headers[len(headers)-1] = value
+	return nil
+}
 
 func printHelp(err interface{}) {
 	fmt.Println(err)
@@ -105,6 +123,7 @@ func main() {
 			printHelp(err)
 		}
 	}()
+	flag.Var(&headers, "H", "-H \"xxx\" -H \"xxx\" to set muilty headers")
 	flag.Parse()
 	if *help {
 		printHelp(nil)
@@ -127,14 +146,13 @@ func main() {
 	if path = url.Path; path == "" {
 		path = "/"
 	}
-	if *headers != "" {
-		headers := strings.Split(*headers, ";")
+	if headers != nil {
 		for _, h := range headers {
-			match, err := parseHeader(h, headerRegexp)
-			if err != nil {
-				printHelp(err)
+			index := strings.Index(h, ":")
+			if index == -1 {
+				printHelp(errors.New("Header format error"))
 			}
-			header.Set(match[1], match[2])
+			header.Set(h[:index], h[index+1:])
 		}
 	}
 	if host == "" || port == "" || path == "" || proto == "" {
@@ -147,7 +165,7 @@ func main() {
 
 	runtime.GOMAXPROCS(*core)
 
-	timeout := time.Duration(*dur) * time.Millisecond
+	timeout := time.Duration(*dur) * time.Second
 	finChan := make([]chan bool, *concurrency)
 
 	// number of connections to crypto server cluster
@@ -174,11 +192,20 @@ func main() {
 	}
 	duration := time.Since(start).Nanoseconds() / (1000 * 1000)
 	reporter.TimeDur = duration
+	t := float64(reporter.TimeDur) / 1000
 	if *keepAlive {
-		reporter.RequestPerSecond = int(float64(reporter.TotalRequest) / (float64(reporter.TimeDur) / 1000))
+		if t == 0 {
+			reporter.RequestPerSecond = 0
+		} else {
+			reporter.RequestPerSecond = int(float64(reporter.TotalRequest) / t)
+		}
 		reporter.ConnectionPerSecond = 0
 	} else {
-		reporter.ConnectionPerSecond = int(float64(reporter.TotalRequest) / (float64(reporter.TimeDur) / 1000))
+		if t == 0 {
+			reporter.ConnectionPerSecond = 0
+		} else {
+			reporter.ConnectionPerSecond = int(float64(reporter.TotalRequest) / t)
+		}
 		reporter.RequestPerSecond = 0
 	}
 	var server string
@@ -230,7 +257,7 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 		}
 
 		r.TotalRequest += 1
-		//SPDY MAY BLOCK HERE LONG LONG TIME
+		//resp, err = client.Get("https://www.baidu.com")
 		resp, err = client.Do(req)
 		if err != nil {
 			r.FailedRequest += 1
