@@ -28,14 +28,9 @@ import (
 	"net/http"
 	gourl "net/url"
 	"os"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
-)
-
-const (
-	headerRegexp = "^([\\w-]+):\\s*(.+)"
 )
 
 var CipherSuites = map[string]uint16{
@@ -63,9 +58,9 @@ var (
 	help        *bool   = flag.Bool("h", false, "show help")
 	url         *string = flag.String("u", "https://0.0.0.0:28080/", "server url")
 	concurrency *int    = flag.Int("c", 1, "concurrency:the worker's number,1 default")
-	reqNum      *int    = flag.Int("r", 1, "total requests per connection,0 default")
-	dur         *int    = flag.Int("t", 0, "timelimit (second),0 default")
-	keepAlive   *bool   = flag.Bool("k", false, "keep the connections every worker established alive,false default")
+	reqNum      *int    = flag.Int("r", 1, "total requests per connection,1 default")
+	dur         *int    = flag.Int("t", 0, "timelimit (second),0 second default")
+	keepAlive   *bool   = flag.Bool("k", false, "keep the connections each worker established alive,false default")
 	cipherSuite *string = flag.String("s", "TLS_RSA_WITH_RC4_128_SHA", "cipher suite,TLS_RSA_WITH_RC4_128_SHA default")
 	method      *string = flag.String("m", "GET", "HTTP Method,GET default")
 	//headers      = flag.Value("H", []string{}, "request Headers,empty default").([]string{})
@@ -346,21 +341,10 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 		go handle_request(start, done, client, reporter)
 		go request_done(done, end, reporter)
 		for i := 0; i < reqNum; i++ {
-			//fmt.Println("finish:", i)
 			start <- true
 			<-end
 		}
 		finChan <- true
 	}
 
-}
-
-//parse headers:'header1:v1;header2:v2'
-func parseHeader(in, reg string) (matches []string, err error) {
-	re := regexp.MustCompile(reg)
-	matches = re.FindStringSubmatch(in)
-	if len(matches) < 1 {
-		err = errors.New(fmt.Sprintf("Could not parse provided input:%s", err.Error()))
-	}
-	return
 }
