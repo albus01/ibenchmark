@@ -10,4 +10,4 @@ clean:
 	rm -f $(TARGET)
 
 distclean: clean
-	rm -rf .gostuff
+	rm -rf .ibenchmark
