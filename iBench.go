@@ -189,12 +189,20 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 			TLSClientConfig:   &config,
 		}
 	}
-	start := make(chan bool, reqNum)
-	done := make(chan bool, reqNum)
-	end := make(chan bool, reqNum)
+	start := make(chan bool, 1024)
+	done := make(chan bool, 1024)
+	end := make(chan bool, 1024)
 	client := &http.Client{Transport: tr}
 	end_time := time.After(timeout)
+
 	if *dur != 0 {
+		go func() {
+			for {
+				<-end
+				//todo something here
+			}
+
+		}()
 		go handle_request(start, done, client, reporter)
 		go request_done(done, end, reporter)
 		for {
@@ -204,18 +212,25 @@ func worker(reqNum int, timeout time.Duration, reporter *ibench.Reporter, finCha
 				return
 			default:
 				start <- true
-				<-end
 			}
 		}
 
 	} else {
+		go func() {
+			var endNum = 0
+			for {
+				<-end
+				endNum++
+				if endNum == reqNum {
+					finChan <- true
+				}
+			}
+		}()
 		go handle_request(start, done, client, reporter)
 		go request_done(done, end, reporter)
 		for i := 0; i < reqNum; i++ {
 			start <- true
-			<-end
 		}
-		finChan <- true
 	}
 
 }
