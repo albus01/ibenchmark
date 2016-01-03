@@ -30,6 +30,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -107,11 +108,13 @@ func (f *flagHeader) Set(value string) error {
 func handle_request(start, done chan bool, client *http.Client, r *ibench.Reporter) {
 	for {
 		<-start
+		atomic.AddInt32(&r.TotalRequest, 1)
 		var resp *http.Response
 		var err error
 		var bout bytes.Buffer
 		req, err := http.NewRequest(*method, *url, strings.NewReader(*body))
 		if err != nil {
+			atomic.AddInt32(&r.FailedRequest, 1)
 			r.FailedRequest += 1
 			done <- true
 			continue
@@ -123,11 +126,9 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 			//So I have to hanlde the Host header in my code.
 			req.Host = header.Get("Host")
 		}
-
-		r.TotalRequest += 1
 		resp, err = client.Do(req)
 		if err != nil {
-			r.FailedRequest += 1
+			atomic.AddInt32(&r.FailedRequest, 1)
 			done <- true
 			continue
 		}
@@ -149,7 +150,7 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 			}
 
 			if err := resp.Body.Close(); err != nil {
-				r.FailedRequest += 1
+				atomic.AddInt32(&r.FailedRequest, 1)
 			}
 		}
 		done <- true

@@ -29,8 +29,8 @@ type Reporter struct {
 	Concurrency         int
 	TimeTaken           int64
 	TimeDur             int64
-	TotalRequest        int
-	FailedRequest       int
+	TotalRequest        int32
+	FailedRequest       int32
 	RequestPerSecond    int
 	ConnectionPerSecond int
 	Non2XXCode          int
@@ -49,7 +49,7 @@ func (r *Reporter) Print() {
 
 func (r *Reporter) report(dur int) {
 	if dur != 0 {
-		report := fmt.Sprintf("\nFinished Request Numbers:%d\nFailed Request Numbers:%d\nTime Consume:%d\nDone Per Second:%d\n", r.TotalRequest, r.FailedRequest, dur, r.TotalRequest/dur)
+		report := fmt.Sprintf("\nFinished Request Numbers:%d\nFailed Request Numbers:%d\nTime Consume:%d\nDone Per Second:%d\n", r.TotalRequest, r.FailedRequest, dur, r.TotalRequest/int32(dur))
 		fmt.Println(report)
 	}
 }
