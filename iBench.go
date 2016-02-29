@@ -262,9 +262,9 @@ func main() {
 		go worker(*reqNum, timeout, reporter, finChan[i])
 	}
 	//report schedule
-	if *verb {
-		go reporter.Reporter()
-	}
+	//if *verb {
+	//	go reporter.Reporter()
+	//}
 	// wait for finish
 	for i := 0; i < *concurrency; i = i + 1 {
 		switch {
