@@ -30,6 +30,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -78,7 +79,10 @@ var (
 	path         string
 	swithHttp    bool            = false
 	network      string          = "tcp"
-	servers      map[string]bool = make(map[string]bool)
+	servers                      = struct {
+		sync.RWMutex
+		item map[string]bool
+	}{item: make(map[string]bool)}
 	header       http.Header     = make(http.Header)
 	cipherSuites []uint16
 	portMap      = map[string]string{"http": "80", "https": "443"}
@@ -138,8 +142,13 @@ func handle_request(start, done chan bool, client *http.Client, r *ibench.Report
 			}
 			r.ContentLength = resp.ContentLength
 			for _, server := range resp.Header["Server"] {
-				if !servers[server] {
-					servers[server] = true
+				servers.RLock()
+				b := servers.item[server]
+				servers.RUnlock()
+				if !b {
+					servers.Lock()
+					servers.item[server] = true
+					servers.Unlock()
 				}
 			}
 			if *out {
@@ -296,7 +305,7 @@ func generateReporter(duration int64) {
 		reporter.RequestPerSecond = 0
 	}
 	var server string
-	for key, _ := range servers {
+	for key, _ := range servers.item {
 		server = fmt.Sprintf("%s %s", server, key)
 	}
 	//generate header info
